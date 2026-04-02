@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { X } from "lucide-react";
 
 const messages = [
   "🏠 Klaus M. aus München hat gerade eine Beratung gebucht",
@@ -10,45 +11,49 @@ const SocialProofToast = () => {
   const [visible, setVisible] = useState(false);
   const [fading, setFading] = useState(false);
   const [index, setIndex] = useState(0);
-  const [cycle, setCycle] = useState(0);
+
+  const dismiss = useCallback(() => {
+    setFading(true);
+    setTimeout(() => {
+      setVisible(false);
+      setFading(false);
+      setIndex((prev) => (prev + 1) % messages.length);
+    }, 500);
+  }, []);
 
   useEffect(() => {
-    if (cycle >= messages.length) return;
-
-    // Show after initial delay (first) or gap between toasts
-    const showDelay = cycle === 0 ? 4000 : 1500;
+    // First toast after 15s, then every 35s
+    const delay = index === 0 && !visible ? 15000 : 35000;
     const showTimer = setTimeout(() => {
       setVisible(true);
       setFading(false);
-    }, showDelay);
+    }, delay);
 
     return () => clearTimeout(showTimer);
-  }, [cycle]);
+  }, [index, visible]);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible || fading) return;
 
     // Auto-hide after 5 seconds
-    const hideTimer = setTimeout(() => {
-      setFading(true);
-      setTimeout(() => {
-        setVisible(false);
-        setIndex((prev) => prev + 1);
-        setCycle((prev) => prev + 1);
-      }, 500);
-    }, 5000);
-
+    const hideTimer = setTimeout(dismiss, 5000);
     return () => clearTimeout(hideTimer);
-  }, [visible]);
+  }, [visible, fading, dismiss]);
 
-  if (!visible || cycle >= messages.length) return null;
+  if (!visible) return null;
 
   return (
     <div
-      className={`fixed bottom-[7.5rem] sm:bottom-16 left-4 sm:left-6 z-40 bg-white shadow-xl rounded-xl p-4 w-72 transition-all duration-500 ${
+      className={`fixed bottom-[7.5rem] sm:bottom-16 left-4 sm:left-6 z-40 bg-white shadow-xl rounded-xl p-4 pr-9 w-72 transition-all duration-500 ${
         fading ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"
       }`}
     >
+      <button
+        onClick={dismiss}
+        className="absolute top-2.5 right-2.5 text-gray-400 hover:text-gray-600 transition-colors"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
       <div className="flex items-start gap-3">
         <span className="mt-1 w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse shrink-0" />
         <p className="text-sm text-foreground leading-snug">{messages[index]}</p>
