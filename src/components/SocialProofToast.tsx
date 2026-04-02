@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { X } from "lucide-react";
 
 const messages = [
@@ -11,31 +11,38 @@ const SocialProofToast = () => {
   const [visible, setVisible] = useState(false);
   const [fading, setFading] = useState(false);
   const [index, setIndex] = useState(0);
+  const showCount = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const scheduleNext = useCallback(() => {
+    clearTimeout(timerRef.current);
+    const delay = showCount.current === 0 ? 15000 : 35000;
+    timerRef.current = setTimeout(() => {
+      setIndex(showCount.current % messages.length);
+      setFading(false);
+      setVisible(true);
+      showCount.current += 1;
+    }, delay);
+  }, []);
 
   const dismiss = useCallback(() => {
     setFading(true);
     setTimeout(() => {
       setVisible(false);
       setFading(false);
-      setIndex((prev) => (prev + 1) % messages.length);
+      scheduleNext();
     }, 500);
-  }, []);
+  }, [scheduleNext]);
 
+  // Initial schedule
   useEffect(() => {
-    // First toast after 15s, then every 35s
-    const delay = index === 0 && !visible ? 15000 : 35000;
-    const showTimer = setTimeout(() => {
-      setVisible(true);
-      setFading(false);
-    }, delay);
+    scheduleNext();
+    return () => clearTimeout(timerRef.current);
+  }, [scheduleNext]);
 
-    return () => clearTimeout(showTimer);
-  }, [index, visible]);
-
+  // Auto-hide after 5s
   useEffect(() => {
     if (!visible || fading) return;
-
-    // Auto-hide after 5 seconds
     const hideTimer = setTimeout(dismiss, 5000);
     return () => clearTimeout(hideTimer);
   }, [visible, fading, dismiss]);
