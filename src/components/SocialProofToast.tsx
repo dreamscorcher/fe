@@ -16,13 +16,12 @@ const SocialProofToast = () => {
 
   const scheduleNext = useCallback(() => {
     clearTimeout(timerRef.current);
-    const delay = showCount.current === 0 ? 15000 : 35000;
     timerRef.current = setTimeout(() => {
       setIndex(showCount.current % messages.length);
       setFading(false);
       setVisible(true);
       showCount.current += 1;
-    }, delay);
+    }, 35000);
   }, []);
 
   const dismiss = useCallback(() => {
@@ -34,11 +33,25 @@ const SocialProofToast = () => {
     }, 500);
   }, [scheduleNext]);
 
-  // Initial schedule
+  // First toast: wait for scroll + 7 seconds
   useEffect(() => {
-    scheduleNext();
-    return () => clearTimeout(timerRef.current);
-  }, [scheduleNext]);
+    let scrolled = false;
+    const onScroll = () => {
+      if (scrolled) return;
+      scrolled = true;
+      window.removeEventListener("scroll", onScroll);
+      timerRef.current = setTimeout(() => {
+        setFading(false);
+        setVisible(true);
+        showCount.current += 1;
+      }, 7000);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      clearTimeout(timerRef.current);
+    };
+  }, []);
 
   // Auto-hide after 5s
   useEffect(() => {
